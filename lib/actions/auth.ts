@@ -14,11 +14,15 @@ export async function loginAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const next = String(formData.get("next") || "/write");
 
   if (isSupabaseConfigured()) {
+    const email = process.env.WRITER_EMAIL?.trim();
+    if (!email) {
+      return { ok: false, error: "Login is not configured." };
+    }
+
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithPassword({
@@ -26,7 +30,7 @@ export async function loginAction(
       password,
     });
     if (error) {
-      return { ok: false, error: "Invalid email or password." };
+      return { ok: false, error: "Invalid password." };
     }
     redirect(next.startsWith("/") ? next : "/write");
   }
