@@ -7,12 +7,6 @@ import {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (isSupabaseConfigured()) {
-    const { updateSession } = await import("@/lib/supabase/middleware");
-    return updateSession(request);
-  }
-
   const token = request.cookies.get(LOCAL_SESSION_COOKIE)?.value;
   const isAuthed = await verifyLocalSessionToken(token);
 
@@ -28,6 +22,11 @@ export async function middleware(request: NextRequest) {
     writeUrl.pathname = "/write";
     writeUrl.search = "";
     return NextResponse.redirect(writeUrl);
+  }
+
+  if (isSupabaseConfigured()) {
+    const { updateSession } = await import("@/lib/supabase/middleware");
+    return updateSession(request);
   }
 
   return NextResponse.next();

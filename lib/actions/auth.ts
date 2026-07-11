@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   createLocalSessionToken,
   LOCAL_SESSION_COOKIE,
-  isSupabaseConfigured,
 } from "@/lib/auth-session";
 
 export type AuthResult = { ok: true } | { ok: false; error: string };
@@ -16,24 +15,6 @@ export async function loginAction(
 ): Promise<AuthResult> {
   const password = String(formData.get("password") || "");
   const next = String(formData.get("next") || "/write");
-
-  if (isSupabaseConfigured()) {
-    const email = process.env.WRITER_EMAIL?.trim();
-    if (!email) {
-      return { ok: false, error: "Login is not configured." };
-    }
-
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      return { ok: false, error: "Invalid password." };
-    }
-    redirect(next.startsWith("/") ? next : "/write");
-  }
 
   const expected = process.env.WRITER_PASSWORD || "blessing";
   if (password !== expected) {
@@ -53,12 +34,6 @@ export async function loginAction(
 }
 
 export async function logoutAction() {
-  if (isSupabaseConfigured()) {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-  }
-
   const cookieStore = await cookies();
   cookieStore.delete(LOCAL_SESSION_COOKIE);
   redirect("/");

@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import * as local from "@/lib/local-store";
 import type { Post, PostInput } from "@/lib/types";
 import { isSupabaseConfigured } from "@/lib/auth-session";
+import { isWriterAuthenticated } from "@/lib/auth";
 import { excerptFromHtml, slugify } from "@/lib/utils";
 
 export async function listPublishedPosts(): Promise<Post[]> {
@@ -28,7 +30,7 @@ export async function listAllPosts(): Promise<Post[]> {
     return local.localListAllPosts();
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("posts")
     .select("*")
@@ -46,7 +48,8 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     return local.localGetPostBySlug(slug);
   }
 
-  const supabase = await createClient();
+  const isWriter = await isWriterAuthenticated();
+  const supabase = isWriter ? createAdminClient() : await createClient();
   const { data, error } = await supabase
     .from("posts")
     .select("*")
@@ -57,7 +60,9 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     console.error("getPostBySlug", error);
     return null;
   }
-  return data as Post | null;
+  if (!data) return null;
+  if (!isWriter && data.status !== "published") return null;
+  return data as Post;
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
@@ -65,7 +70,7 @@ export async function getPostById(id: string): Promise<Post | null> {
     return local.localGetPostById(id);
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("posts")
     .select("*")
@@ -84,7 +89,7 @@ export async function createPost(input: PostInput): Promise<Post | null> {
     return local.localCreatePost(input);
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const baseSlug = slugify(input.slug || input.title || "untitled");
   const now = new Date().toISOString();
 
@@ -139,7 +144,7 @@ export async function updatePost(
   const existing = await getPostById(id);
   if (!existing) return null;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const nextStatus = input.status ?? existing.status;
   const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
@@ -187,7 +192,7 @@ export async function deletePost(id: string): Promise<boolean> {
     return local.localDeletePost(id);
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) {
     console.error("deletePost", error);

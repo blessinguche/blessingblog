@@ -11,6 +11,18 @@ export function getSupabaseAnonKey(): string | undefined {
   );
 }
 
+/** Server-only secret key — bypasses RLS for writer operations */
+export function getSupabaseSecretKey(): string | undefined {
+  return (
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
 export function isSupabaseConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
+}
+
+export function isSupabaseWriterConfigured(): boolean {
+  return isSupabaseConfigured() && Boolean(getSupabaseSecretKey());
 }
