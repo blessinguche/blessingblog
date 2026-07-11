@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { BlessingEditor } from "@/components/editor/blessing-editor";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PostContent } from "@/components/post-content";
 import { savePostAction, deletePostAction } from "@/lib/actions/posts";
 import { wordCountFromHtml } from "@/lib/utils";
+import { debounce } from "@/lib/debounce";
 import type { FontPreference, Post } from "@/lib/types";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -16,19 +17,43 @@ type Props = {
 };
 
 export function WriteShell({ post, drafts = [] }: Props) {
+  const initialContent = post?.content || "";
+  const contentRef = useRef(initialContent);
   const [title, setTitle] = useState(post?.title || "");
-  const [content, setContent] = useState(post?.content || "");
+  const [previewHtml, setPreviewHtml] = useState(initialContent);
+  const [words, setWords] = useState(() => wordCountFromHtml(initialContent));
   const [font, setFont] = useState<FontPreference>("merriweather");
   const [preview, setPreview] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const words = useMemo(() => wordCountFromHtml(content), [content]);
+  const debouncedWordCount = useMemo(
+    () =>
+      debounce((html: string) => {
+        setWords(wordCountFromHtml(html));
+      }, 200),
+    []
+  );
+
+  const handleEditorUpdate = useCallback(
+    (html: string) => {
+      contentRef.current = html;
+      debouncedWordCount(html);
+    },
+    [debouncedWordCount]
+  );
+
+  const togglePreview = () => {
+    if (!preview) {
+      setPreviewHtml(contentRef.current);
+    }
+    setPreview((p) => !p);
+  };
 
   const submit = (status: "draft" | "published") => {
     const formData = new FormData();
     if (post?.id) formData.set("id", post.id);
     formData.set("title", title || "Untitled");
-    formData.set("content", content);
+    formData.set("content", contentRef.current);
     formData.set("status", status);
     startTransition(() => {
       void savePostAction(formData);
@@ -74,7 +99,7 @@ export function WriteShell({ post, drafts = [] }: Props) {
             <ThemeToggle />
             <button
               type="button"
-              onClick={() => setPreview((p) => !p)}
+              onClick={togglePreview}
               className="hover:text-foreground transition-colors"
               title="Preview"
             >
@@ -134,7 +159,7 @@ export function WriteShell({ post, drafts = [] }: Props) {
             <h1 className="text-3xl sm:text-4xl font-bold mb-6">
               {title || "Untitled"}
             </h1>
-            <PostContent html={content} />
+            <PostContent html={previewHtml} />
           </article>
         ) : (
           <div
@@ -147,8 +172,10 @@ export function WriteShell({ post, drafts = [] }: Props) {
               className="w-full bg-transparent text-3xl sm:text-4xl font-bold outline-none placeholder:text-muted-soft mb-6"
             />
             <BlessingEditor
-              content={content}
-              onChange={setContent}
+              key={post?.id ?? "new"}
+              postId={post?.id}
+              initialContent={initialContent}
+              onUpdate={handleEditorUpdate}
               font={font}
             />
           </div>

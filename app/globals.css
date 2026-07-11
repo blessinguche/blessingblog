@@ -187,11 +187,34 @@ a:hover {
 }
 
 /* TipTap editor */
-.ProseMirror {
+.blessing-editor-shell {
+  contain: layout style;
+}
+
+.ProseMirror,
+.ProseMirror.blessing-editor {
   outline: none;
   min-height: 60vh;
   font-size: 1.25rem;
   line-height: 1.85;
+  caret-color: var(--link);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.ProseMirror ::selection {
+  background: color-mix(in srgb, var(--link) 28%, transparent);
+}
+
+.ProseMirror p {
+  margin: 0 0 0.65rem;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.15rem;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
