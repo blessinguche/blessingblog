@@ -14,7 +14,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       <button
         type="button"
         aria-label="Toggle theme"
-        className={`text-muted hover:text-foreground transition-colors ${className}`}
+        className={`text-muted hover:text-foreground transition-colors cursor-pointer ${className}`}
       >
         ◐
       </button>
@@ -28,7 +28,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className={`text-muted hover:text-foreground transition-colors text-lg leading-none ${className}`}
+        className={`text-muted hover:text-foreground transition-colors text-lg leading-none cursor-pointer ${className}`}
     >
       {isDark ? "☀" : "☾"}
     </button>

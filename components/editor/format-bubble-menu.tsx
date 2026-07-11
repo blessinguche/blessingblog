@@ -144,7 +144,7 @@ function FormatBubbleMenuInner({ editor }: { editor: Editor }) {
           onClick={() =>
             editor.chain().focus().toggleHighlight({ color: p.color }).run()
           }
-          className={`h-5 w-5 rounded-sm border border-border/60 ${
+          className={`h-5 w-5 rounded-sm border border-border/60 cursor-pointer ${
             p.active ? "ring-1 ring-foreground" : ""
           }`}
           style={{ background: p.color }}
@@ -177,7 +177,7 @@ function MenuBtn({
       title={title}
       onMouseDown={onMouseDown}
       onClick={onClick}
-      className={`min-w-7 px-1.5 py-1 rounded text-foreground/80 hover:bg-border/50 transition-colors ${
+      className={`min-w-7 px-1.5 py-1 rounded text-foreground/80 hover:bg-border/50 transition-colors cursor-pointer ${
         active ? "bg-border/70" : ""
       } ${className}`}
     >

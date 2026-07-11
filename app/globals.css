@@ -73,10 +73,26 @@ a {
   color: var(--link);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 a:hover {
   opacity: 0.85;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary,
+input[type="submit"],
+input[type="button"],
+input[type="reset"] {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
 }
 
 /* Prose / post content */

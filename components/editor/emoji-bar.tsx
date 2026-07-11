@@ -51,7 +51,7 @@ function EmojiBarInner({ editor }: { editor: Editor }) {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().insertContent(emoji).run()}
-          className="text-lg px-1 py-0.5 rounded hover:bg-border/40 transition-colors"
+          className="text-lg px-1 py-0.5 rounded hover:bg-border/40 transition-colors cursor-pointer"
           title="Insert emoji"
         >
           {emoji}

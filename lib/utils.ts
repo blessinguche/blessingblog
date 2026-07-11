@@ -17,8 +17,8 @@ export function formatDate(date: string | null | undefined): string {
   });
 }
 
-export function excerptFromHtml(html: string, maxLength = 220): string {
-  const text = html
+export function htmlToPlainText(html: string): string {
+  return html
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -27,6 +27,10 @@ export function excerptFromHtml(html: string, maxLength = 220): string {
     .replace(/&quot;/g, '"')
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function excerptFromHtml(html: string, maxLength = 220): string {
+  const text = htmlToPlainText(html);
 
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trim()}…`;

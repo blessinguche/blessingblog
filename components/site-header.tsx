@@ -20,7 +20,7 @@ export function SiteHeader({
         </div>
         <Link
           href="/"
-          className="inline-block text-foreground no-underline hover:opacity-80"
+          className="inline-block text-foreground no-underline hover:opacity-80 cursor-pointer"
         >
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
             Blessing
@@ -34,7 +34,7 @@ export function SiteHeader({
             <Link
               key={item.href}
               href={item.href}
-              className="text-muted no-underline hover:text-foreground transition-colors lowercase"
+              className="text-muted no-underline hover:text-foreground transition-colors lowercase cursor-pointer"
             >
               {item.label}
             </Link>
@@ -50,7 +50,7 @@ export function SiteHeader({
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <Link
             href="/"
-            className="text-foreground no-underline font-bold text-xl hover:opacity-80"
+            className="text-foreground no-underline font-bold text-xl hover:opacity-80 cursor-pointer"
           >
             Blessing
           </Link>
@@ -59,7 +59,7 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-muted no-underline hover:text-foreground transition-colors lowercase"
+                className="text-muted no-underline hover:text-foreground transition-colors lowercase cursor-pointer"
               >
                 {item.label}
               </Link>
