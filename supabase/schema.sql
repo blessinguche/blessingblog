@@ -13,9 +13,16 @@ create table if not exists public.posts (
   published_at timestamptz,
   font_preference text not null default 'merriweather'
     check (font_preference in ('merriweather', 'typewriter')),
+  category text check (category is null or category in ('thoughts', 'books', 'notes', 'yaps')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- If upgrading an existing DB, also run:
+-- alter table public.posts add column if not exists category text;
+-- alter table public.posts drop constraint if exists posts_category_check;
+-- alter table public.posts add constraint posts_category_check
+--   check (category is null or category in ('thoughts', 'books', 'notes', 'yaps'));
 
 create index if not exists posts_status_published_at_idx
   on public.posts (status, published_at desc);

@@ -2,7 +2,9 @@ import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import type { FontPreference, Post, PostInput, PostStatus } from "@/lib/types";
+import type { PostCategoryId } from "@/lib/categories";
 import { excerptFromHtml, slugify } from "@/lib/utils";
+import { isValidEmail, normalizeEmail } from "@/lib/validate";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const POSTS_FILE = path.join(DATA_DIR, "posts.json");
@@ -25,6 +27,7 @@ async function ensureDataFiles() {
         status: "published",
         published_at: now,
         font_preference: "merriweather",
+        category: "thoughts",
         created_at: now,
         updated_at: now,
       },
@@ -41,7 +44,11 @@ async function ensureDataFiles() {
 async function readPosts(): Promise<Post[]> {
   await ensureDataFiles();
   const raw = await fs.readFile(POSTS_FILE, "utf8");
-  return JSON.parse(raw) as Post[];
+  const posts = JSON.parse(raw) as Post[];
+  return posts.map((p) => ({
+    ...p,
+    category: p.category ?? null,
+  }));
 }
 
 async function writePosts(posts: Post[]) {
@@ -97,6 +104,7 @@ export async function localCreatePost(input: PostInput): Promise<Post> {
     status: input.status,
     published_at: input.status === "published" ? now : null,
     font_preference: input.font_preference || "merriweather",
+    category: input.category ?? null,
     created_at: now,
     updated_at: now,
   };
@@ -107,7 +115,11 @@ export async function localCreatePost(input: PostInput): Promise<Post> {
 
 export async function localUpdatePost(
   id: string,
-  input: Partial<PostInput> & { status?: PostStatus; font_preference?: FontPreference }
+  input: Partial<PostInput> & {
+    status?: PostStatus;
+    font_preference?: FontPreference;
+    category?: PostCategoryId | null;
+  }
 ): Promise<Post | null> {
   const posts = await readPosts();
   const index = posts.findIndex((p) => p.id === id);
@@ -128,6 +140,10 @@ export async function localUpdatePost(
         : excerptFromHtml(content),
     status: nextStatus,
     font_preference: input.font_preference ?? existing.font_preference,
+    category:
+      input.category !== undefined
+        ? input.category
+        : (existing.category ?? null),
     slug: input.slug
       ? uniqueSlug(input.slug, posts, id)
       : input.title
@@ -157,8 +173,8 @@ export async function localAddSubscriber(email: string): Promise<{ ok: boolean; 
   await ensureDataFiles();
   const raw = await fs.readFile(SUBSCRIBERS_FILE, "utf8");
   const list = JSON.parse(raw) as { id: string; email: string; created_at: string; confirmed: boolean }[];
-  const normalized = email.trim().toLowerCase();
-  if (!normalized || !normalized.includes("@")) {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !isValidEmail(normalized)) {
     return { ok: false, error: "Enter a valid email." };
   }
   if (list.some((s) => s.email === normalized)) {

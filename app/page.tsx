@@ -2,7 +2,7 @@ import { SiteHeader } from "@/components/site-header";
 import { BlogFeed } from "@/components/blog-feed";
 import { listPublishedPosts } from "@/lib/posts";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const posts = await listPublishedPosts();

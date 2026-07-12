@@ -1,23 +1,32 @@
 "use server";
 
+import { timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   createLocalSessionToken,
   LOCAL_SESSION_COOKIE,
 } from "@/lib/auth-session";
+import { getWriterPassword } from "@/lib/env";
+import { safeNextPath } from "@/lib/validate";
 
 export type AuthResult = { ok: true } | { ok: false; error: string };
+
+function passwordsMatch(input: string, expected: string): boolean {
+  const a = Buffer.from(input);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 export async function loginAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
   const password = String(formData.get("password") || "");
-  const next = String(formData.get("next") || "/write");
+  const next = safeNextPath(String(formData.get("next") || "/write"));
 
-  const expected = process.env.WRITER_PASSWORD || "blessing";
-  if (password !== expected) {
+  if (!passwordsMatch(password, getWriterPassword())) {
     return { ok: false, error: "Invalid password." };
   }
 
@@ -30,7 +39,7 @@ export async function loginAction(
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  redirect(next.startsWith("/") ? next : "/write");
+  redirect(next);
 }
 
 export async function logoutAction() {

@@ -4,10 +4,11 @@ import { SiteHeader } from "@/components/site-header";
 import { PostContent } from "@/components/post-content";
 import { getPostBySlug } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
+import { getCategory } from "@/lib/categories";
 import { isWriterAuthenticated } from "@/lib/auth";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -37,6 +38,8 @@ export default async function PostPage({ params }: Props) {
   if (!post) notFound();
   if (post.status !== "published" && !isWriter) notFound();
 
+  const cat = getCategory(post.category);
+
   return (
     <div className="min-h-screen">
       <SiteHeader variant="page" />
@@ -45,12 +48,16 @@ export default async function PostPage({ params }: Props) {
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
             {post.title}
           </h1>
-          <time
-            dateTime={post.published_at || post.created_at}
-            className="block mt-3 text-sm text-muted-soft"
-          >
-            {formatDate(post.published_at || post.created_at)}
-          </time>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-soft">
+            <time dateTime={post.published_at || post.created_at}>
+              {formatDate(post.published_at || post.created_at)}
+            </time>
+            {cat ? (
+              <span>
+                {cat.emoji} {cat.hash}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-8">
             <PostContent html={post.content} />
           </div>

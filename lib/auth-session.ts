@@ -1,16 +1,15 @@
+import { getSessionSecret } from "@/lib/env";
+
 const COOKIE_NAME = "blessing_writer_session";
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const LOCAL_SESSION_COOKIE = COOKIE_NAME;
-
-function getSecret(): string {
-  return process.env.WRITER_SESSION_SECRET || "dev-secret";
-}
 
 async function hmacHex(value: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(getSecret()),
+    enc.encode(getSessionSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -33,6 +32,14 @@ export async function verifyLocalSessionToken(
   if (!token) return false;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return false;
+
+  const match = payload.match(/^writer:(\d+)$/);
+  if (!match) return false;
+  const issued = Number(match[1]);
+  if (!Number.isFinite(issued) || Date.now() - issued > SESSION_MAX_AGE_MS) {
+    return false;
+  }
+
   const expected = await hmacHex(payload);
   if (expected.length !== signature.length) return false;
   let ok = true;
