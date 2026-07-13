@@ -1,74 +1,103 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
-const POST_ALLOWED_TAGS = [
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "blockquote",
-  "strong",
-  "b",
-  "em",
-  "i",
-  "u",
-  "a",
-  "img",
-  "figure",
-  "figcaption",
-  "audio",
-  "details",
-  "summary",
-  "small",
-  "sub",
-  "sup",
-  "mark",
-  "br",
-];
-
-const POST_ALLOWED_ATTR = [
-  "href",
-  "src",
-  "alt",
-  "class",
-  "controls",
-  "preload",
-  "data-blessing-voice",
-  "data-duration",
-  "data-label",
-  "style",
-  "rel",
-  "target",
-];
-
-const SAFE_URI = /^(?:(?:https?|mailto):|\/|#)/i;
 const UPLOAD_URI = /^\/uploads\/[a-zA-Z0-9._-]+$/;
 
-DOMPurify.addHook("uponSanitizeAttribute", (node, data) => {
-  if (data.attrName !== "href" && data.attrName !== "src") return;
-  const value = data.attrValue?.trim() || "";
-  if (!value) {
-    data.keepAttr = false;
-    return;
-  }
-  if (data.attrName === "src") {
-    const isUpload = UPLOAD_URI.test(value);
-    const isSafeExternal = /^https?:\/\//i.test(value);
-    if (!isUpload && !isSafeExternal) {
-      data.keepAttr = false;
-    }
-    return;
-  }
-  if (/^javascript:/i.test(value) || /^data:/i.test(value)) {
-    data.keepAttr = false;
-  }
-});
+function isSafeHref(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) return false;
+  return /^(?:https?:|mailto:|\/|#)/i.test(trimmed);
+}
+
+function isSafeSrc(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) return false;
+  return UPLOAD_URI.test(trimmed) || /^https?:\/\//i.test(trimmed);
+}
 
 export function sanitizePostHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: POST_ALLOWED_TAGS,
-    ALLOWED_ATTR: POST_ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: true,
-    ALLOWED_URI_REGEXP: SAFE_URI,
+  return sanitizeHtml(html, {
+    allowedTags: [
+      "p",
+      "h1",
+      "h2",
+      "h3",
+      "blockquote",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "u",
+      "a",
+      "img",
+      "figure",
+      "figcaption",
+      "audio",
+      "details",
+      "summary",
+      "small",
+      "sub",
+      "sup",
+      "mark",
+      "br",
+      "div",
+      "span",
+    ],
+    allowedAttributes: {
+      a: ["href", "rel", "target", "class"],
+      img: ["src", "alt", "class"],
+      audio: ["src", "controls", "preload", "class"],
+      figure: ["class", "data-blessing-voice", "data-duration", "data-label"],
+      "*": ["class"],
+      mark: ["style", "class"],
+      span: ["class", "aria-hidden"],
+      div: ["class"],
+      p: ["class"],
+      details: ["class"],
+      summary: ["class"],
+      small: ["class"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowProtocolRelative: false,
+    transformTags: {
+      a: (tagName, attribs) => {
+        const href = attribs.href || "";
+        if (!isSafeHref(href)) {
+          const rest = { ...attribs };
+          delete rest.href;
+          return { tagName, attribs: rest };
+        }
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            rel: "noopener noreferrer",
+          },
+        };
+      },
+      img: (tagName, attribs) => {
+        const src = attribs.src || "";
+        if (!isSafeSrc(src)) {
+          return { tagName: "span", attribs: {} };
+        }
+        return { tagName, attribs };
+      },
+      audio: (tagName, attribs) => {
+        const src = attribs.src || "";
+        if (!isSafeSrc(src)) {
+          return { tagName: "span", attribs: {} };
+        }
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            controls: "true",
+            preload: attribs.preload || "metadata",
+          },
+        };
+      },
+    },
   });
 }
 
@@ -80,10 +109,7 @@ export function sanitizePlainText(text: string, maxLength = 10_000): string {
 }
 
 export function isSafeLinkUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) return false;
-  return /^https?:\/\//i.test(trimmed) || trimmed.startsWith("/");
+  return isSafeHref(url);
 }
 
 export function isSafeUploadPath(url: string): boolean {
