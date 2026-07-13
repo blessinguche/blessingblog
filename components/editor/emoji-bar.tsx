@@ -44,7 +44,7 @@ const EMOJIS = [
 
 function EmojiBarInner({ editor }: { editor: Editor }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-0.5 opacity-70 hover:opacity-100 transition-opacity">
+    <div className="flex flex-wrap gap-0.5 px-1 py-2 opacity-80 hover:opacity-100 transition-opacity">
       {EMOJIS.map((emoji) => (
         <button
           key={emoji}

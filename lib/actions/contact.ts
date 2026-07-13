@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { validateContactInput } from "@/lib/validate";
 
 export type ContactResult =
   | { ok: true; message: string }
@@ -15,23 +16,23 @@ export async function contactAction(
   _prev: ContactResult | null,
   formData: FormData
 ): Promise<ContactResult> {
-  const name = String(formData.get("name") || "").trim();
-  const email = String(formData.get("email") || "").trim();
-  const subject = String(formData.get("subject") || "").trim();
-  const body = String(formData.get("body") || "").trim();
   const honeypot = String(formData.get("company") || "").trim();
-
   if (honeypot) {
     return { ok: true, message: "Thanks — your message was sent." };
   }
 
-  if (!name || !email || !subject || !body) {
-    return { ok: false, error: "Please fill in all fields." };
+  const validated = validateContactInput({
+    name: String(formData.get("name") || ""),
+    email: String(formData.get("email") || ""),
+    subject: String(formData.get("subject") || ""),
+    body: String(formData.get("body") || ""),
+  });
+
+  if (!validated.ok) {
+    return { ok: false, error: validated.error };
   }
 
-  if (!email.includes("@")) {
-    return { ok: false, error: "Enter a valid email." };
-  }
+  const { name, email, subject, body } = validated.data;
 
   const text = [
     `From: ${name} <${email}>`,
@@ -63,7 +64,6 @@ export async function contactAction(
     return { ok: true, message: "Thanks — your message was sent." };
   }
 
-  // Local fallback when Resend isn't configured yet
   try {
     const dir = path.join(process.cwd(), "data");
     await fs.mkdir(dir, { recursive: true });
@@ -84,7 +84,6 @@ export async function contactAction(
       created_at: new Date().toISOString(),
     });
     await fs.writeFile(file, JSON.stringify(list, null, 2), "utf8");
-    console.info(`[contact] saved locally for ${TO_EMAIL}: ${subject}`);
     return { ok: true, message: "Thanks — your message was sent." };
   } catch (err) {
     console.error("contactAction local", err);

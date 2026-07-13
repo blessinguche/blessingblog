@@ -299,3 +299,81 @@ input:disabled {
   border-radius: 2px;
   padding: 0.05em 0.15em;
 }
+
+.ProseMirror img.blessing-editor-image,
+.prose-blessing img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.25rem 0;
+  border-radius: 2px;
+}
+
+.blessing-voice-note {
+  margin: 1.35rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--background) 88%, var(--border));
+}
+
+.blessing-voice-note-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.blessing-voice-note-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.blessing-voice-note-label {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.blessing-voice-note-duration {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-soft);
+}
+
+.blessing-voice-audio {
+  width: 100%;
+  height: 2.25rem;
+  border-radius: 0.35rem;
+}
+
+.blessing-voice-transcript {
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.blessing-voice-transcript summary {
+  cursor: pointer;
+  color: var(--foreground);
+}
+
+.blessing-voice-transcript-text {
+  margin: 0.45rem 0 0;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.ProseMirror .blessing-voice-note {
+  user-select: text;
+}
+
+.ProseMirror .blessing-voice-note textarea {
+  margin-top: 0.35rem;
+}
+
+.ProseMirror .blessing-voice-note.ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--link) 45%, transparent);
+  outline-offset: 2px;
+}

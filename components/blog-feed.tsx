@@ -2,16 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { PostList } from "@/components/post-list";
-import type { Post } from "@/lib/types";
-import { htmlToPlainText } from "@/lib/utils";
+import type { PostSummary } from "@/lib/types";
 
-function postSearchText(post: Post): string {
-  return [post.title, post.excerpt || "", htmlToPlainText(post.content)]
-    .join(" ")
-    .toLowerCase();
+function postSearchText(post: PostSummary): string {
+  return [post.title, post.excerpt || ""].join(" ").toLowerCase();
 }
 
-export function BlogFeed({ posts }: { posts: Post[] }) {
+export function BlogFeed({ posts }: { posts: PostSummary[] }) {
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
   const normalized = trimmed.toLowerCase();

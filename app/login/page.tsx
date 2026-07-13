@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/login-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { safeNextPath } from "@/lib/validate";
 
 export const metadata: Metadata = {
   title: "Login",
@@ -12,7 +13,7 @@ type Props = { searchParams: Promise<{ next?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
   const { next } = await searchParams;
-  const nextPath = next && next.startsWith("/") ? next : "/write";
+  const nextPath = safeNextPath(next || "/write");
 
   return (
     <div className="min-h-screen flex flex-col">
