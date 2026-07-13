@@ -113,5 +113,14 @@ export function isSafeLinkUrl(url: string): boolean {
 }
 
 export function isSafeUploadPath(url: string): boolean {
-  return UPLOAD_URI.test(url.trim());
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (UPLOAD_URI.test(trimmed)) return true;
+  // Public Supabase Storage URLs (and other https media)
+  if (!/^https:\/\//i.test(trimmed)) return false;
+  if (/^javascript:/i.test(trimmed) || /^data:/i.test(trimmed)) return false;
+  return (
+    trimmed.includes("/storage/v1/object/public/media/") ||
+    /\.(webm|m4a|mp3|ogg|wav|mp4)(\?|$)/i.test(trimmed)
+  );
 }

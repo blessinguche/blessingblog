@@ -70,3 +70,52 @@ create policy "Writer read subscribers"
   on public.subscribers for select
   to authenticated
   using (true);
+
+-- Gallery image metadata (used with Supabase Storage bucket "media")
+create table if not exists public.gallery_images (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  url text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.gallery_images enable row level security;
+
+create policy "Public read gallery images"
+  on public.gallery_images for select
+  using (true);
+
+create policy "Service role manages gallery images"
+  on public.gallery_images for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+-- Storage bucket for voice notes + gallery images
+insert into storage.buckets (id, name, public)
+values ('media', 'media', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Public read media" on storage.objects;
+drop policy if exists "Service role write media" on storage.objects;
+drop policy if exists "Service role update media" on storage.objects;
+drop policy if exists "Service role delete media" on storage.objects;
+
+create policy "Public read media"
+  on storage.objects for select
+  using (bucket_id = 'media');
+
+create policy "Service role write media"
+  on storage.objects for insert
+  to service_role
+  with check (bucket_id = 'media');
+
+create policy "Service role update media"
+  on storage.objects for update
+  to service_role
+  using (bucket_id = 'media')
+  with check (bucket_id = 'media');
+
+create policy "Service role delete media"
+  on storage.objects for delete
+  to service_role
+  using (bucket_id = 'media');

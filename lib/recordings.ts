@@ -1,9 +1,6 @@
-import { promises as fs } from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 import { audioExt, detectAudioKind } from "@/lib/file-magic";
-
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+import { uploadMediaFile } from "@/lib/storage";
 
 export type SavedRecording = {
   id: string;
@@ -22,15 +19,28 @@ export async function saveRecording(file: File): Promise<SavedRecording> {
     throw new Error("Unsupported audio format.");
   }
 
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  const id = randomUUID();
   const ext = audioExt(kind);
-  const filename = `${id}-voice.${ext}`;
-  await fs.writeFile(path.join(UPLOADS_DIR, filename), buffer);
+  const contentType =
+    kind === "webm"
+      ? "audio/webm"
+      : kind === "mp4"
+        ? "audio/mp4"
+        : kind === "ogg"
+          ? "audio/ogg"
+          : kind === "wav"
+            ? "audio/wav"
+            : "audio/mpeg";
+
+  const stored = await uploadMediaFile({
+    folder: "voice",
+    buffer,
+    filename: `voice.${ext}`,
+    contentType,
+  });
 
   return {
-    id,
-    url: `/uploads/${filename}`,
-    created_at: new Date().toISOString(),
+    id: stored.id || randomUUID(),
+    url: stored.url,
+    created_at: stored.created_at,
   };
 }
