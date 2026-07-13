@@ -1,17 +1,32 @@
+function isProd() {
+  return process.env.NODE_ENV === "production";
+}
+
 export function getWriterPassword(): string {
-  const password = process.env.WRITER_PASSWORD;
+  const password = process.env.WRITER_PASSWORD?.trim();
   if (password) return password;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("WRITER_PASSWORD must be set in production.");
+  if (isProd()) {
+    console.error(
+      "[env] WRITER_PASSWORD is missing. Set it in Vercel → Settings → Environment Variables."
+    );
   }
   return "blessing";
 }
 
 export function getSessionSecret(): string {
-  const secret = process.env.WRITER_SESSION_SECRET;
+  const secret = process.env.WRITER_SESSION_SECRET?.trim();
   if (secret) return secret;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("WRITER_SESSION_SECRET must be set in production.");
+  if (isProd()) {
+    console.error(
+      "[env] WRITER_SESSION_SECRET is missing. Set it in Vercel → Settings → Environment Variables."
+    );
   }
   return "dev-secret";
+}
+
+export function hasRequiredWriterEnv(): boolean {
+  return Boolean(
+    process.env.WRITER_PASSWORD?.trim() &&
+      process.env.WRITER_SESSION_SECRET?.trim()
+  );
 }

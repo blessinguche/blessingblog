@@ -36,19 +36,35 @@ function isSupabaseSchemaError(error: SupabaseError): boolean {
   return (
     code === "PGRST205" ||
     code === "42P01" ||
+    code === "42703" ||
     message.includes("schema cache") ||
-    message.includes("does not exist")
+    message.includes("does not exist") ||
+    message.includes("column")
   );
 }
 
+function logMissingSchema(context: string, error: SupabaseError) {
+  console.error(
+    `[posts] ${context}: Supabase posts table/schema is missing or outdated.`,
+    "Run supabase/schema.sql in the Supabase SQL editor.",
+    error
+  );
+}
+
+/** Local JSON only when Supabase writer credentials are not configured. Never fall back on Vercel. */
 function shouldUseLocalPostsStore() {
   return !isSupabaseWriterConfigured();
 }
 
 export async function listPublishedPosts(): Promise<PostSummary[]> {
   if (shouldUseLocalPostsStore()) {
-    const posts = await local.localListPublishedPosts();
-    return posts.map(toSummary);
+    try {
+      const posts = await local.localListPublishedPosts();
+      return posts.map(toSummary);
+    } catch (err) {
+      console.error("listPublishedPosts local", err);
+      return [];
+    }
   }
 
   const supabase = await createClient();
@@ -60,8 +76,8 @@ export async function listPublishedPosts(): Promise<PostSummary[]> {
 
   if (error) {
     if (isSupabaseSchemaError(error)) {
-      const posts = await local.localListPublishedPosts();
-      return posts.map(toSummary);
+      logMissingSchema("listPublishedPosts", error);
+      return [];
     }
     console.error("listPublishedPosts", error);
     return [];
@@ -74,7 +90,12 @@ export async function listPublishedPosts(): Promise<PostSummary[]> {
 
 export async function listAllPosts(): Promise<Post[]> {
   if (shouldUseLocalPostsStore()) {
-    return local.localListAllPosts();
+    try {
+      return await local.localListAllPosts();
+    } catch (err) {
+      console.error("listAllPosts local", err);
+      return [];
+    }
   }
 
   try {
@@ -86,7 +107,8 @@ export async function listAllPosts(): Promise<Post[]> {
 
     if (error) {
       if (isSupabaseSchemaError(error)) {
-        return local.localListAllPosts();
+        logMissingSchema("listAllPosts", error);
+        return [];
       }
       console.error("listAllPosts", error);
       return [];
@@ -94,7 +116,7 @@ export async function listAllPosts(): Promise<Post[]> {
     return ((data ?? []) as Post[]).map(normalizePost);
   } catch (err) {
     console.error("listAllPosts", err);
-    return local.localListAllPosts();
+    return [];
   }
 }
 
@@ -102,7 +124,12 @@ export const getPostBySlug = cache(async function getPostBySlug(
   slug: string
 ): Promise<Post | null> {
   if (shouldUseLocalPostsStore()) {
-    return local.localGetPostBySlug(slug);
+    try {
+      return await local.localGetPostBySlug(slug);
+    } catch (err) {
+      console.error("getPostBySlug local", err);
+      return null;
+    }
   }
 
   const isWriter = await isWriterAuthenticated();
@@ -115,7 +142,8 @@ export const getPostBySlug = cache(async function getPostBySlug(
 
   if (error) {
     if (isSupabaseSchemaError(error)) {
-      return local.localGetPostBySlug(slug);
+      logMissingSchema("getPostBySlug", error);
+      return null;
     }
     console.error("getPostBySlug", error);
     return null;
@@ -127,7 +155,12 @@ export const getPostBySlug = cache(async function getPostBySlug(
 
 export async function getPostById(id: string): Promise<Post | null> {
   if (shouldUseLocalPostsStore()) {
-    return local.localGetPostById(id);
+    try {
+      return await local.localGetPostById(id);
+    } catch (err) {
+      console.error("getPostById local", err);
+      return null;
+    }
   }
 
   try {
@@ -140,7 +173,8 @@ export async function getPostById(id: string): Promise<Post | null> {
 
     if (error) {
       if (isSupabaseSchemaError(error)) {
-        return local.localGetPostById(id);
+        logMissingSchema("getPostById", error);
+        return null;
       }
       console.error("getPostById", error);
       return null;
@@ -148,7 +182,7 @@ export async function getPostById(id: string): Promise<Post | null> {
     return data ? normalizePost(data as Post) : null;
   } catch (err) {
     console.error("getPostById", err);
-    return local.localGetPostById(id);
+    return null;
   }
 }
 
@@ -179,7 +213,8 @@ export async function createPost(input: PostInput): Promise<Post | null> {
 
     if (error) {
       if (isSupabaseSchemaError(error)) {
-        return local.localCreatePost(input);
+        logMissingSchema("createPost", error);
+        return null;
       }
 
       const { data: retry, error: retryError } = await supabase
@@ -207,7 +242,7 @@ export async function createPost(input: PostInput): Promise<Post | null> {
     return normalizePost(data as Post);
   } catch (err) {
     console.error("createPost", err);
-    return local.localCreatePost(input);
+    return null;
   }
 }
 
@@ -264,7 +299,8 @@ export async function updatePost(
 
     if (error) {
       if (isSupabaseSchemaError(error)) {
-        return local.localUpdatePost(id, input);
+        logMissingSchema("updatePost", error);
+        return null;
       }
       console.error("updatePost", error);
       return null;
@@ -272,7 +308,7 @@ export async function updatePost(
     return normalizePost(data as Post);
   } catch (err) {
     console.error("updatePost", err);
-    return local.localUpdatePost(id, input);
+    return null;
   }
 }
 
@@ -286,7 +322,8 @@ export async function deletePost(id: string): Promise<boolean> {
     const { error } = await supabase.from("posts").delete().eq("id", id);
     if (error) {
       if (isSupabaseSchemaError(error)) {
-        return local.localDeletePost(id);
+        logMissingSchema("deletePost", error);
+        return false;
       }
       console.error("deletePost", error);
       return false;
@@ -294,7 +331,7 @@ export async function deletePost(id: string): Promise<boolean> {
     return true;
   } catch (err) {
     console.error("deletePost", err);
-    return local.localDeletePost(id);
+    return false;
   }
 }
 
@@ -319,6 +356,7 @@ export async function addSubscriber(
   if (error) {
     if (error.code === "23505") return { ok: true };
     if (isSupabaseSchemaError(error)) {
+      logMissingSchema("addSubscriber", error);
       return local.localAddSubscriber(email);
     }
     console.error("addSubscriber", error);
@@ -327,5 +365,4 @@ export async function addSubscriber(
   return { ok: true };
 }
 
-// re-export for callers that still import from posts
 export { isSupabaseConfigured } from "@/lib/supabase/env";
